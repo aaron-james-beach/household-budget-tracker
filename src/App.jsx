@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import storage from "./storage.js";
 
 const DEFAULT_INCOME = [
   { id: 1, name: "Primary Income", amount: 5000, active: true, type: "recurring" },
@@ -94,55 +95,55 @@ function ItemRow({ item, onEdit, onDelete, color }) {
 }
 
 export default function BudgetTracker() {
-  // Initialize from localStorage or defaults
-  const [tab, setTab] = useState(() => localStorage.getItem("budget_tab") || "overview");
+  // Initialize from saved data or defaults
+  const [tab, setTab] = useState(() => storage.getItem("budget_tab") || "overview");
   const [income, setIncome] = useState(() => {
-    const saved = localStorage.getItem("budget_income");
+    const saved = storage.getItem("budget_income");
     return saved ? JSON.parse(saved) : DEFAULT_INCOME;
   });
   const [essential, setEssential] = useState(() => {
-    const saved = localStorage.getItem("budget_essential");
+    const saved = storage.getItem("budget_essential");
     return saved ? JSON.parse(saved) : DEFAULT_ESSENTIAL;
   });
   const [discretionary, setDiscretionary] = useState(() => {
-    const saved = localStorage.getItem("budget_discretionary");
+    const saved = storage.getItem("budget_discretionary");
     return saved ? JSON.parse(saved) : DEFAULT_DISCRETIONARY;
   });
   const [planned, setPlanned] = useState(() => {
-    const saved = localStorage.getItem("budget_planned");
+    const saved = storage.getItem("budget_planned");
     return saved ? JSON.parse(saved) : DEFAULT_PLANNED;
   });
   const [savings, setSavings] = useState(() => {
-    const saved = localStorage.getItem("budget_savings");
+    const saved = storage.getItem("budget_savings");
     return saved ? parseFloat(saved) : 5000;
   });
   const [modal, setModal] = useState(null);
   const [editTarget, setEditTarget] = useState(null);
   const [form, setForm] = useState({});
 
-  // Save to localStorage whenever state changes
+  // Save whenever state changes
   useEffect(() => {
-    localStorage.setItem("budget_tab", tab);
+    storage.setItem("budget_tab", tab);
   }, [tab]);
 
   useEffect(() => {
-    localStorage.setItem("budget_income", JSON.stringify(income));
+    storage.setItem("budget_income", JSON.stringify(income));
   }, [income]);
 
   useEffect(() => {
-    localStorage.setItem("budget_essential", JSON.stringify(essential));
+    storage.setItem("budget_essential", JSON.stringify(essential));
   }, [essential]);
 
   useEffect(() => {
-    localStorage.setItem("budget_discretionary", JSON.stringify(discretionary));
+    storage.setItem("budget_discretionary", JSON.stringify(discretionary));
   }, [discretionary]);
 
   useEffect(() => {
-    localStorage.setItem("budget_planned", JSON.stringify(planned));
+    storage.setItem("budget_planned", JSON.stringify(planned));
   }, [planned]);
 
   useEffect(() => {
-    localStorage.setItem("budget_savings", savings.toString());
+    storage.setItem("budget_savings", savings.toString());
   }, [savings]);
 
   const activeIncome = useMemo(() => income.filter(i => i.active && i.type === "recurring").reduce((s, i) => s + i.amount, 0), [income]);
@@ -199,15 +200,21 @@ export default function BudgetTracker() {
 
   function resetToDefaults() {
     if (confirm("Reset all data to defaults? This will clear all your changes.")) {
-      localStorage.clear();
+      storage.clear();
       window.location.reload();
     }
+  }
+
+  async function importData() {
+    const { ok } = await storage.importData();
+    if (ok) window.location.reload();
   }
 
   const inp = { width: "100%", background: "#131825", border: "1px solid #2e3650", borderRadius: 8, color: "#e8e4d8", padding: "10px 12px", fontSize: 14, outline: "none", boxSizing: "border-box", marginBottom: 12 };
   const lbl = { fontSize: 11, color: "#8a8f9e", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 4, display: "block" };
   const btnP = { background: "#e8b86d", color: "#131825", border: "none", borderRadius: 8, padding: "10px 20px", cursor: "pointer", fontWeight: 700, fontSize: 13 };
   const btnS = { background: "transparent", color: "#8a8f9e", border: "1px solid #2e3650", borderRadius: 8, padding: "10px 18px", cursor: "pointer", fontSize: 13, marginRight: 8 };
+  const btnHdr = { background: "transparent", border: "1px solid #2e3650", color: "#8a8f9e", cursor: "pointer", fontSize: 11, padding: "5px 12px", borderRadius: 6, letterSpacing: "0.05em" };
   const tabs = ["overview", "income", "essential", "discretionary", "planned"];
 
   const runwayMonths = surplus < 0 ? (savings / Math.abs(surplus)).toFixed(1) : null;
@@ -219,14 +226,15 @@ export default function BudgetTracker() {
         <div style={{ maxWidth: 960, margin: "0 auto" }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 4 }}>
             <h1 style={{ margin: 0, fontSize: 26, fontWeight: 400, letterSpacing: "-0.02em" }}>Household Budget Tracker</h1>
-            <button onClick={resetToDefaults} style={{
-              marginLeft: "auto", background: "transparent", border: "1px solid #2e3650",
-              color: "#8a8f9e", cursor: "pointer", fontSize: 11, padding: "5px 12px",
-              borderRadius: 6, letterSpacing: "0.05em"
-            }}>Reset to Defaults</button>
+            <div style={{ marginLeft: "auto", display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+              {storage.exportData && <button onClick={storage.exportData} style={btnHdr}>Export</button>}
+              {storage.importData && <button onClick={importData} style={btnHdr}>Import</button>}
+              {storage.revealDataFile && <button onClick={storage.revealDataFile} style={btnHdr}>Show Data File</button>}
+              <button onClick={resetToDefaults} style={btnHdr}>Reset to Defaults</button>
+            </div>
           </div>
           <p style={{ margin: "4px 0 20px", fontSize: 13, color: "#8a8f9e" }}>
-            Track income, expenses, and financial runway with localStorage persistence
+            Track income, expenses, and financial runway
           </p>
           <div style={{ display: "flex", gap: 0 }}>
             {tabs.map(t => (
