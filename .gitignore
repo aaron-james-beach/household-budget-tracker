@@ -25,3 +25,6 @@ dist-ssr
 
 # Electron build output
 release
+
+# R session files
+.Rhistory
